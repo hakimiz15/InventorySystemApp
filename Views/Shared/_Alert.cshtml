@@ -1,0 +1,96 @@
+@* Reusable global floating alert *@
+@{
+    var message = TempData["Message"] as string;
+    string alertClass = string.Empty;
+
+    if (!string.IsNullOrWhiteSpace(message))
+    {
+        if (message.Contains("✅"))
+            alertClass = "alert-success";
+        else if (message.Contains("⚠️"))
+            alertClass = "alert-warning";
+        else if (message.Contains("ℹ️"))
+            alertClass = "alert-info";
+        else
+            alertClass = "alert-danger";
+    }
+}
+
+@if (!string.IsNullOrWhiteSpace(message))
+{
+    <div class="floating-alert @alertClass slide-down">
+        <div class="alert-content">
+            @message
+        </div>
+    </div>
+}
+
+<style>
+    /* Floating alert container */
+    .floating-alert {
+        position: fixed;
+        top: -80px; /* start hidden */
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 600px;
+        text-align: center;
+        border-radius: 8px;
+        padding: 12px 20px;
+        font-weight: 600;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        opacity: 0;
+        transition: top 0.5s ease, opacity 0.5s ease;
+    }
+
+    .floating-alert.alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    .floating-alert.alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    .floating-alert.alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+    .floating-alert.alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    /* Slide-down animation */
+    @@keyframes slideDown {
+        0% {
+            top: -80px;
+            opacity: 0;
+        }
+        100% {
+            top: 20px;
+            opacity: 1;
+        }
+    }
+
+    .slide-down {
+        animation: slideDown 0.6s ease-out forwards;
+    }
+</style>
+
+<script>
+    // Automatically fade out and remove alert after 4 seconds
+    setTimeout(() => {
+        const alert = document.querySelector('.floating-alert');
+        if (alert) {
+            alert.style.transition = 'opacity 0.8s ease, top 0.8s ease';
+            alert.style.opacity = '0';
+            alert.style.top = '-80px';
+            setTimeout(() => alert.remove(), 800);
+        }
+    }, 4000);
+</script>

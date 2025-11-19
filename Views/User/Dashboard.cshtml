@@ -1,0 +1,196 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "User Dashboard";
+    ViewData["UserType"] = "User";
+}
+
+<div class="dashboard-container">
+    <!-- 🟣 Welcome Section -->
+    <div class="header-section">
+        <h1 class="heading">Welcome, User!</h1>
+        <p class="subheading">Search for item codes to check their storage location.</p>
+    </div>
+
+    <!-- 🔍 Search Bar -->
+    <form asp-action="SearchItem" asp-controller="User" method="get" class="search-form" id="searchForm">
+    <input type="text" name="itemCode"
+           placeholder="Search item code..."
+           class="search-input"
+           value="@(ViewData["SearchResults"] != null ? "" : ViewData["SearchCode"] ?? "")"
+           required />
+
+    <button type="submit" class="search-btn">
+        <i class="fas fa-search"></i> Search
+    </button>
+
+    <!-- ✖️ Clear button -->
+    <button type="button" id="clearSearch" class="clear-btn">
+        <i class="fas fa-times"></i>
+    </button>
+</form>
+
+    <!-- 📊 Search Results -->
+    @if (ViewData["SearchResults"] != null)
+    {
+        var searchResults = ViewData["SearchResults"] as IEnumerable<dynamic>;
+
+        if (searchResults != null && searchResults.Any())
+        {
+            <div class="results-container">
+                <h3>Search Results for "@ViewData["SearchCode"]":</h3>
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th>Cabinet Number</th>
+                            <th>Category</th>
+                            <th>Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in searchResults)
+                        {
+                            <tr>
+                                <td>@item.ItemName</td>
+                                <td>@item.CabinetNumber</td>
+                                <td>@item.Category</td>
+                                <td>@item.Quantity</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-warning fade-in">❌ No results found for that item code.</div>
+        }
+    }
+</div>
+
+<script>
+    // 🧹 Clear search field and reload page
+    document.getElementById("clearSearch").addEventListener("click", function () {
+        const input = document.querySelector(".search-input");
+        input.value = "";
+        window.location.href = "/User/Dashboard"; // reload to reset
+    });
+</script>
+
+<!-- 🎨 Styling -->
+<style>
+    .dashboard-container {
+        max-width: 900px;
+        margin: 40px auto;
+        text-align: center;
+    }
+
+    .header-section {
+        margin-bottom: 25px;
+    }
+
+    .heading {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .subheading {
+        color: #666;
+        font-size: 1rem;
+        margin-bottom: 30px;
+    }
+
+    /* 🔍 Search Bar Styling (Canva-style) */
+   .search-form {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto 40px;
+        background: #fff;
+        border-radius: 50px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        padding: 8px 15px;
+        position: relative;
+    }
+
+    .search-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-size: 1rem;
+        padding: 12px 18px;
+        border-radius: 50px;
+        background-color: transparent;
+        color: #333;
+    }
+
+    .search-btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border: none;
+        color: white;
+        padding: 10px 24px;
+        font-size: 1rem;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: background 0.3s ease, transform 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .search-btn:hover {
+        background: linear-gradient(135deg, #5a67d8, #6b46c1);
+        transform: translateY(-2px);
+    }
+
+    /* ✖️ Clear button styling */
+    .clear-btn {
+        position: absolute;
+        right: 90px;
+        background: transparent;
+        border: none;
+        color: #888;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+
+    .clear-btn:hover {
+        color: #555;
+    }
+
+    .results-container {
+        margin-top: 30px;
+        text-align: left;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    table th, table td {
+        text-align: center;
+        padding: 12px;
+    }
+
+    th {
+        background: #667eea;
+        color: white;
+        border-bottom: 2px solid #ddd;
+    }
+
+    td {
+        background: #fff;
+    }
+
+    tr:nth-child(even) td {
+        background: #f9f9f9;
+    }
+</style>

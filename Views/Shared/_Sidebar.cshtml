@@ -1,0 +1,37 @@
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+
+@{
+    // Get the logged-in user's role from session
+    var userRole = HttpContextAccessor.HttpContext?.Session.GetString("Role");
+}
+
+<div class="sidebar">
+    <img src="~/image/decathlon.png" alt="Logo" />
+
+    @if (userRole == "Admin")
+    {
+        <a href="@Url.Action("Dashboard", "Admin")"><i class="fas fa-home icon"></i> <span class="menu-text">Dashboard</span></a>
+        <a href="@Url.Action("ViewUsers", "Admin")"><i class="fas fa-users icon"></i> <span class="menu-text">Manage Users</span></a>
+        <a href="@Url.Action("AddItem", "Admin")"><i class="fas fa-plus icon"></i> <span class="menu-text">Add Item</span></a>
+        <a href="@Url.Action("RemoveItem", "Admin")"><i class="fas fa-minus icon"></i> <span class="menu-text">Remove Item</span></a>
+        <a href="@Url.Action("ViewCabinet", "Admin")"><i class="fas fa-warehouse icon"></i> <span class="menu-text">View Cabinet</span></a>
+        <a href="@Url.Action("LoginLogs", "Admin")"><i class="fas fa-file-alt icon"></i> <span class="menu-text">View Login Logs</span></a>
+    }
+    else if (userRole == "User")
+    {
+        <a href="@Url.Action("Dashboard", "User")"><i class="fas fa-home icon"></i> <span class="menu-text">Dashboard</span></a>
+        <a href="@Url.Action("AddItem", "User")"><i class="fas fa-plus icon"></i> <span class="menu-text">Add Item</span></a>
+        <a href="@Url.Action("RemoveItem", "User")"><i class="fas fa-minus icon"></i> <span class="menu-text">Remove Item</span></a>
+        <a href="@Url.Action("ViewCabinet", "User")"><i class="fas fa-warehouse icon"></i> <span class="menu-text">View Cabinet</span></a>
+    }
+
+    <li>
+        <a asp-controller="Admin" asp-action="ViewBlockchain">
+            <i class="fas fa-link"></i> Blockchain Records
+        </a>
+    </li>
+
+    <a href="@Url.Action("Logout", "Auth")"><i class="fas fa-sign-out-alt icon"></i> <span class="menu-text">Logout</span></a>
+    
+</div>

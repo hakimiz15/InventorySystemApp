@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+packages/
+*.nupkg
+[Bb]uild/
+*.log
+.idea/
+*.DotSettings.user
+*.cache

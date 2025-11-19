@@ -1,0 +1,169 @@
+@{
+    Layout = "_LoginLayout";
+    ViewData["Title"] = "Login";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overstock System - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            background-color: #3643ba;
+        }
+
+        .left-image {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+
+        .left-image img {
+            width: 400px;
+            height: auto;
+            transform: translateY(-100px);
+        }
+
+        .left-image h1 {
+            font-size: 2rem;
+            margin-top: -100px;
+        }
+
+        .left-image p {
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+            color: #e0e0e0;
+            font-weight: bold;
+        }
+
+        .login-container {
+            width: 350px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            text-align: center;
+            margin-right: 200px;
+        }
+
+        h2 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+            color: #444;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            font-size: 0.95rem;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            border-color: #00c4cc;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.9rem;
+            background: #3643ba;
+            color: white;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 0.5rem;
+        }
+
+        .btn:hover {
+            background: #00a9b0;
+        }
+
+        .footer-text {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #555;
+            text-align: right;
+        }
+
+        .footer-text a {
+            color: #2592e0;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: red;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="left-image">
+        <img src="~/image/decathlon.png" alt="Background Illustration">
+        <h1>Welcome Back!</h1>
+        <p>Please Log-In to continue</p>
+    </div>
+
+    <div class="login-container">
+        <h2>Log in</h2>
+
+        @* Display error from ViewBag *@
+        @if (ViewBag.ErrorMessage != null)
+        {
+            <p class="error-message">@ViewBag.ErrorMessage</p>
+        }
+
+        <form asp-action="Login" method="post">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required />
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required />
+                <p class="footer-text"><a href="#">Forgot Password?</a></p>
+            </div>
+            <button type="submit" class="btn">Login</button>
+        </form>
+    </div>
+</body>
+</html>

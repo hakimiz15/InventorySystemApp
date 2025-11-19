@@ -1,0 +1,74 @@
+@model List<InventorySystemApp.Models.Cabinet>
+
+@{
+    ViewData["Title"] = "Cabinet Overview";
+    Layout = "_Layout";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<div class="container mt-5">
+    <h2 class="mb-4 text-center">Cabinet Overview</h2>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info text-center">
+            No cabinet data available.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var cabinet in Model)
+            {
+                var fillPercent = (cabinet.UsedSpace * 100) / cabinet.Capacity;
+                var progressColor = fillPercent switch
+                {
+                    <= 50 => "bg-success",
+                    <= 80 => "bg-warning",
+                    _ => "bg-danger"
+                };
+                
+                <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-primary text-white">
+                            <strong>Cabinet @cabinet.CabinetNumber</strong> - @cabinet.Category
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Capacity:</strong> @cabinet.Capacity</p>
+                            <p><strong>Used Space:</strong> @cabinet.UsedSpace</p>
+                            <div class="progress mb-3" style="height: 20px;">
+                                <div class="progress-bar @progressColor" 
+                                     role="progressbar" 
+                                     style="width: @fillPercent%;" 
+                                     aria-valuenow="@fillPercent" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    @fillPercent%
+                                </div>
+                            </div>
+
+                            @if (cabinet.Items != null && cabinet.Items.Any())
+                            {
+                                <h6>Stored Items:</h6>
+                                <ul class="list-group list-group-flush">
+                                    @foreach (var item in cabinet.Items)
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>@item.ItemCode</span>
+                                            <span class="badge bg-secondary">@item.Quantity</span>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No items stored yet.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

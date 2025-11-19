@@ -1,0 +1,120 @@
+@model List<InventorySystemApp.Models.Cabinet>
+
+@{
+    ViewData["Title"] = "Cabinet Overview";
+    ViewData["UserType"] = "Admin";
+    Layout = "_Layout";
+}
+
+<div class="container mt-4">
+    <h2 class="text-center mb-5">Cabinet Overview</h2>
+
+    <div class="cabinet-grid">
+        @foreach (var cabinet in Model)
+        {
+            <div class="cabinet-card shadow-sm">
+                <div class="cabinet-header">
+                    <strong>Cabinet @cabinet.CabinetNumber</strong> - @cabinet.Category
+                </div>
+
+                <div class="cabinet-body">
+                    <p><strong>Capacity:</strong> @cabinet.Capacity</p>
+                    <p><strong>Used Space:</strong> @cabinet.UsedSpace</p>
+
+                    <div class="progress mb-3 mt-2">
+                        <div class="progress-bar" 
+                             role="progressbar" 
+                             style="width:@((cabinet.UsedSpace * 100) / cabinet.Capacity)%;">
+                            @((cabinet.UsedSpace * 100) / cabinet.Capacity)%
+                        </div>
+                    </div>
+
+                    <div class="stored-items mt-3">
+                        <strong>Stored Items:</strong>
+                        @if (cabinet.Items != null && cabinet.Items.Any())
+                        {
+                            <ul class="list-group mt-2">
+                                @foreach (var item in cabinet.Items)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        @item.ItemCode
+                                        <span class="badge bg-secondary">@item.Quantity</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="text-muted mt-3">No items stored yet.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .cabinet-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 25px;
+    }
+
+    .cabinet-card {
+        background: #fff;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #ddd;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        line-height: 1.6; /* ✅ improved text spacing */
+    }
+
+    .cabinet-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12);
+    }
+
+    .cabinet-header {
+        background: #0066ff;
+        color: #fff;
+        padding: 12px 18px;
+        font-weight: 600;
+        font-size: 1.05rem;
+        letter-spacing: 0.3px;
+    }
+
+    .cabinet-body {
+        padding: 18px;
+    }
+
+    .progress {
+        height: 14px;
+        background-color: #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+
+    .progress-bar {
+        background-color: #ffc107;
+        color: #000;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+        line-height: 14px;
+        transition: width 0.5s ease;
+    }
+
+    .list-group-item {
+        font-size: 0.9rem;
+        border: 1px solid #f0f0f0;
+        padding: 6px 12px;
+    }
+
+    .stored-items strong {
+        display: block;
+        margin-bottom: 8px; /* ✅ adds breathing space before item list */
+    }
+</style>

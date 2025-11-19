@@ -1,0 +1,24 @@
+@{
+    ViewData["Title"] = "Remove Item";
+    ViewData["UserType"] = "User";
+    Layout = "_Layout";
+}
+
+<div class="form-container">
+    <h2>Remove Item</h2>
+    <form method="post" asp-action="RemoveItem">
+        <div class="form-group">
+            <label for="item-code">Item Code</label>
+            <input type="text" id="item-code" name="ItemCode" placeholder="Enter item code" required />
+        </div>
+        <div class="form-group">
+            <label for="cabinet-number">Cabinet Number</label>
+            <input type="text" id="cabinet-number" name="CabinetNumber" placeholder="Enter cabinet number" required />
+        </div>
+        <div class="form-group">
+            <label for="quantity">Quantity</label>
+            <input type="number" id="quantity" name="Quantity" placeholder="Enter quantity" required />
+        </div>
+        <button type="submit" class="btn">Delete</button>
+    </form>
+</div>
