@@ -1,14 +1,19 @@
 using InventorySystem.Data;
 using InventorySystemApp.Data;
+using InventorySystemApp.Models;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MongoDB services
-builder.Services.AddSingleton<MongoDBService>();
-builder.Services.AddSingleton<MongoDBContext>();
+builder.Services.AddScoped<MongoDBService>();
+builder.Services.AddScoped<MongoDBContext>();
 
 // Add MVC services
 builder.Services.AddControllersWithViews();
+
+// Password hashing (production-grade: salted PBKDF2 via ASP.NET Core Identity PasswordHasher)
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 // Add session and distributed memory cache
 builder.Services.AddDistributedMemoryCache();
@@ -23,13 +28,6 @@ builder.Services.AddSession(options =>
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 var app = builder.Build();
-
-using (var scope = app.Services.CreateScope())
-{
-    var mongoService = scope.ServiceProvider.GetRequiredService<MongoDBService>();
-    Console.WriteLine("✅ MongoDB Service initialized and blockchain verified.");
-}
-
 
 // Error handling & HTTPS
 if (!app.Environment.IsDevelopment())

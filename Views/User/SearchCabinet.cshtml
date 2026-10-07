@@ -1,0 +1,541 @@
+@model List<InventorySystemApp.Models.Cabinet>
+
+@{
+    ViewData["Title"] = "Search Cabinets";
+    ViewData["UserType"] = "User";
+    Layout = "_Layout";
+
+    var q = ViewData["SearchQuery"] as string ?? string.Empty;
+    var isSearch = !string.IsNullOrWhiteSpace(q);
+    var matched = ViewData["TotalCabinetsWithMatch"] as int? ?? 0;
+    var totalQty = ViewData["TotalItemQuantity"] as int? ?? 0;
+    var catalogName = ViewData["CatalogName"] as string;
+    var catalogCategory = ViewData["CatalogCategory"] as string;
+    var any = Model != null && Model.Any();
+
+    bool IsMatch(string? s)
+    {
+        if (!isSearch || string.IsNullOrWhiteSpace(s) || string.IsNullOrWhiteSpace(q))
+            return false;
+        return s.Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
+}
+
+@await Html.PartialAsync("_Alert")
+
+<div class="sc-page">
+
+    <!-- ============== HEADER / SEARCH BAR (minimal, 1 row) ============== -->
+    <div class="sc-header">
+        <form asp-action="SearchCabinet" asp-controller="User" method="get" class="sc-search">
+            <div class="sc-search-inner">
+                <i class="fas fa-search sc-search-icon"></i>
+                <input
+                    type="text"
+                    name="search"
+                    value="@q"
+                    placeholder="Search item code, cabinet #, or category..."
+                    class="sc-search-input"
+                    autocomplete="off"
+                    autofocus />
+                <button type="submit" class="sc-search-btn">Search</button>
+            </div>
+            <div class="sc-links">
+                <a asp-action="ViewCabinet" asp-controller="User" class="sc-link">
+                    <i class="fas fa-th-large"></i> View All
+                </a>
+                <span class="sc-sep"></span>
+                <a asp-action="Dashboard" asp-controller="User" class="sc-link">
+                    <i class="fas fa-arrow-left"></i> Dashboard
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- ============== SEARCH SUMMARY (super minimal) ============== -->
+    @if (isSearch)
+    {
+        <div class="sc-summary @(any ? "sc-summary-good" : "sc-summary-bad")">
+            <div class="sc-summary-main">
+                <span class="sc-q-label">Query:</span>
+                <code class="sc-q-chip">@q</code>
+
+                @if (!string.IsNullOrEmpty(catalogName))
+                {
+                    <span class="sc-dot"></span>
+                    <span class="sc-meta">
+                        <i class="fas fa-tag"></i>
+                        @catalogName
+                        @if (!string.IsNullOrEmpty(catalogCategory))
+                        {
+                            <text> · @catalogCategory</text>
+                        }
+                    </span>
+                }
+            </div>
+            <div class="sc-summary-stats">
+                <span class="sc-stat"><i class="fas fa-warehouse"></i> @matched <small>cabinet(s)</small></span>
+                <span class="sc-stat"><i class="fas fa-boxes-stacked"></i> @totalQty <small>total qty</small></span>
+                @if (any)
+                {
+                    <span class="sc-pill sc-pill-good">
+                        <i class="fas fa-circle-check"></i> AVAILABLE
+                    </span>
+                }
+                else
+                {
+                    <span class="sc-pill sc-pill-bad">
+                        <i class="fas fa-circle-xmark"></i> NOT FOUND
+                    </span>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- ============== PAGE TITLE ============== -->
+    <h3 class="sc-title">
+        @if (isSearch)
+        {
+            <text>Search Results</text>
+        }
+        else
+        {
+            <text>Search Cabinets</text>
+        }
+    </h3>
+
+    <!-- ============== STATES ============== -->
+    @if (!isSearch)
+    {
+        <div class="sc-empty">
+            <i class="fas fa-search sc-empty-icon"></i>
+            <p class="sc-empty-title">Ready to search</p>
+            <p class="sc-empty-sub">Enter an item code, cabinet number, or category above.</p>
+        </div>
+    }
+    else if (!any)
+    {
+        <div class="sc-empty">
+            <i class="fas fa-box-open sc-empty-icon sc-empty-icon-warn"></i>
+            <p class="sc-empty-title">No matches for "@q"</p>
+            <p class="sc-empty-sub">The item may not be in stock or the code is incorrect.</p>
+            <div class="sc-empty-actions">
+                <a asp-action="ViewCabinet" asp-controller="User" class="sc-btn sc-btn-outline">
+                    <i class="fas fa-th-large"></i> Browse All Cabinets
+                </a>
+                <a asp-action="Dashboard" asp-controller="User" class="sc-btn sc-btn-primary">
+                    <i class="fas fa-home"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ============== CARDS (same Bootstrap-like look, fully self-styled) ============== -->
+        <div class="sc-grid">
+            @foreach (var cab in Model!)
+            {
+                var fill = cab.Capacity > 0 ? (int)Math.Round(100.0 * cab.UsedSpace / cab.Capacity) : 0;
+                var barCls = fill >= 90 ? "sc-bar-full" : fill >= 60 ? "sc-bar-mid" : "sc-bar-low";
+                var isMatch = IsMatch(cab.CabinetNumber) || IsMatch(cab.Category) ||
+                              (cab.Items != null && cab.Items.Any(i => IsMatch(i.ItemCode)));
+
+                <div class="sc-card @(isMatch ? "sc-card-match" : "")">
+                    <div class="sc-card-head">
+                        <strong>Cabinet
+                            @if (IsMatch(cab.CabinetNumber)) { <mark>@cab.CabinetNumber</mark> }
+                            else { @cab.CabinetNumber }
+                        </strong>
+                        <text> — </text>
+                        @if (IsMatch(cab.Category)) { <mark>@cab.Category</mark> }
+                        else { @cab.Category }
+                    </div>
+                    <div class="sc-card-body">
+                        <div class="sc-card-row">
+                            <span class="sc-card-lbl">Capacity</span>
+                            <span class="sc-card-val">@cab.Capacity</span>
+                        </div>
+                        <div class="sc-card-row">
+                            <span class="sc-card-lbl">Used Space</span>
+                            <span class="sc-card-val">@cab.UsedSpace</span>
+                        </div>
+
+                        <div class="sc-prog-wrap">
+                            <div class="sc-prog">
+                                <div class="sc-prog-fill @barCls" style="width:@fill%;"></div>
+                            </div>
+                            <small class="sc-prog-txt">@fill%</small>
+                        </div>
+
+                        @if (cab.Items != null && cab.Items.Any())
+                        {
+                            <h6 class="sc-card-h6">Stored Items</h6>
+                            <ul class="sc-items">
+                                @foreach (var itm in cab.Items)
+                                {
+                                    var itmMatch = IsMatch(itm.ItemCode);
+                                    <li class="@(itmMatch ? "sc-item-match" : "")">
+                                        @if (itmMatch) { <mark>@itm.ItemCode</mark> }
+                                        else { <span>@itm.ItemCode</span> }
+                                        <span class="sc-qty-chip">@itm.Quantity</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p class="sc-card-empty">No items stored yet.</p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+</div>
+
+<style>
+    /* ============== PAGE WRAPPER ============== */
+    .sc-page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 24px 20px 80px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* ============== HEADER + SEARCH ============== */
+    .sc-header { margin-bottom: 16px; }
+    .sc-search {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 14px 16px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .sc-search-inner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+        margin-bottom: 10px;
+    }
+    .sc-search-icon {
+        position: absolute;
+        left: 14px;
+        color: #9ca3af;
+        font-size: 14px;
+        pointer-events: none;
+    }
+    .sc-search-input {
+        flex: 1;
+        padding: 10px 14px 10px 36px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .sc-search-input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .sc-search-btn {
+        padding: 10px 18px;
+        background: #2563eb;
+        color: white;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background .15s;
+    }
+    .sc-search-btn:hover { background: #1d4ed8; }
+    .sc-links {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+        flex-wrap: wrap;
+    }
+    .sc-link {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .sc-link i { margin-right: 4px; }
+    .sc-link:hover { text-decoration: underline; }
+    .sc-sep {
+        width: 1px;
+        height: 14px;
+        background: #e5e7eb;
+        display: inline-block;
+    }
+
+    /* ============== SUMMARY BAR (good/bad variants) ============== */
+    .sc-summary {
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        border: 1px solid;
+    }
+    .sc-summary-good {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+    }
+    .sc-summary-bad {
+        background: #fef2f2;
+        border-color: #fecaca;
+    }
+    .sc-summary-main {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-size: 14px;
+    }
+    .sc-q-label {
+        color: #374151;
+        font-weight: 500;
+    }
+    .sc-q-chip {
+        background: white;
+        color: #111827;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 2px 10px;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 13px;
+    }
+    .sc-dot {
+        width: 4px; height: 4px;
+        background: #9ca3af;
+        border-radius: 50%;
+    }
+    .sc-meta { color: #4b5563; font-size: 13px; }
+    .sc-meta i { color: #d97706; margin-right: 4px; }
+    .sc-summary-stats {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .sc-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: white;
+        border: 1px solid #e5e7eb;
+        color: #111827;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .sc-stat small {
+        color: #6b7280;
+        font-weight: 500;
+        font-size: 11px;
+        margin-left: 2px;
+    }
+    .sc-pill {
+        padding: 4px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 12px;
+        letter-spacing: .2px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .sc-pill-good {
+        background: #16a34a;
+        color: white;
+    }
+    .sc-pill-bad {
+        background: #dc2626;
+        color: white;
+    }
+
+    /* ============== TITLE ============== */
+    .sc-title {
+        margin: 0 0 20px 4px;
+        font-weight: 700;
+        color: #111827;
+        font-size: 18px;
+    }
+
+    /* ============== EMPTY STATE ============== */
+    .sc-empty {
+        text-align: center;
+        padding: 48px 20px;
+        background: white;
+        border: 1px dashed #e5e7eb;
+        border-radius: 14px;
+        margin-top: 6px;
+    }
+    .sc-empty-icon {
+        font-size: 42px;
+        color: #9ca3af;
+        margin-bottom: 12px;
+    }
+    .sc-empty-icon-warn { color: #f59e0b; }
+    .sc-empty-title {
+        margin: 0 0 4px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #111827;
+    }
+    .sc-empty-sub {
+        margin: 0;
+        color: #6b7280;
+        font-size: 14px;
+    }
+    .sc-empty-actions {
+        margin-top: 18px;
+        display: inline-flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .sc-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: background .15s, border-color .15s, color .15s;
+    }
+    .sc-btn-primary {
+        background: #2563eb;
+        color: white;
+    }
+    .sc-btn-primary:hover { background: #1d4ed8; }
+    .sc-btn-outline {
+        background: white;
+        color: #374151;
+        border-color: #d1d5db;
+    }
+    .sc-btn-outline:hover { background: #f9fafb; border-color: #9ca3af; }
+
+    /* ============== CARD GRID ============== */
+    .sc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+    .sc-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        transition: transform .15s, box-shadow .15s, border-color .15s;
+    }
+    .sc-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+    }
+    .sc-card-match {
+        border-color: #fcd34d;
+        box-shadow: 0 0 0 1px #fcd34d, 0 8px 18px rgba(245, 158, 11, 0.12);
+    }
+    .sc-card-head {
+        background: #1d4ed8;
+        color: white;
+        padding: 12px 16px;
+        font-size: 15px;
+    }
+    .sc-card-head mark,
+    .sc-items li mark {
+        background: #fef08a;
+        color: #854d0e;
+        padding: 1px 6px;
+        border-radius: 4px;
+    }
+    .sc-card-body { padding: 16px; }
+    .sc-card-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 2px 0;
+        font-size: 14px;
+    }
+    .sc-card-lbl { color: #4b5563; font-weight: 500; }
+    .sc-card-val { color: #111827; font-weight: 600; }
+
+    .sc-prog-wrap { margin: 10px 0 14px; }
+    .sc-prog {
+        height: 14px;
+        background: #e5e7eb;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .sc-prog-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width .3s;
+    }
+    .sc-bar-low  { background: #22c55e; }
+    .sc-bar-mid  { background: #f59e0b; }
+    .sc-bar-full { background: #ef4444; }
+    .sc-prog-txt {
+        display: inline-block;
+        margin-top: 4px;
+        color: #6b7280;
+        font-size: 11px;
+    }
+
+    .sc-card-h6 {
+        margin: 14px 0 6px;
+        color: #111827;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: .2px;
+    }
+    .sc-items {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        border: 1px solid #f3f4f6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .sc-items li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        font-size: 14px;
+        color: #1f2937;
+    }
+    .sc-items li + li {
+        border-top: 1px solid #f3f4f6;
+    }
+    .sc-items li.sc-item-match {
+        background: #fef3c7;
+    }
+    .sc-qty-chip {
+        background: #4b5563;
+        color: white;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 2px 10px;
+        border-radius: 999px;
+    }
+    .sc-card-empty {
+        color: #9ca3af;
+        font-style: italic;
+        margin: 10px 0 0;
+        font-size: 13px;
+    }
+</style>

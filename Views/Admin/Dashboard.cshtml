@@ -2,209 +2,109 @@
     Layout = "_Layout";
     ViewData["Title"] = "Admin Dashboard";
     ViewData["UserType"] = "Admin";
-
-    var results = ViewData["SearchResults"] as List<dynamic> ?? new List<dynamic>();
-    bool hasResults = results.Any();
 }
 
-<div class="dashboard-container @(hasResults ? "with-results" : "centered")">
-    <!-- 👋 Greeting (only if not searching) -->
-    @if (!hasResults)
-    {
-        <div class="welcome-section fade-in">
-            <h1>Welcome, Admin!</h1>
-            <p class="subtext">Search for any item to see where it’s stored in your inventory.</p>
-        </div>
-    }
+@await Html.PartialAsync("_Alert")
 
-    <!-- 🔍 Search Bar -->
-    <form asp-action="SearchItem" method="get" class="search-bar-container">
-        <div class="search-input-wrapper">
+<div class="dashboard-search-wrap">
+    <form asp-action="ViewCabinet" asp-controller="Admin" method="get" class="dashboard-search-form" id="dashboardSearchForm">
+        <div class="dashboard-search-field">
             <i class="fas fa-search search-icon"></i>
-            <input type="text" name="itemCode" placeholder="Search item code (e.g., R001)" required />
-            <button type="submit" class="search-btn">Search</button>
+            <input
+                type="text"
+                id="dashboardSearchInput"
+                name="search"
+                placeholder="Enter item code, cabinet #, or category to search..."
+                autocomplete="off" />
+            <button type="submit" class="search-submit-btn">
+                <i class="fas fa-search"></i> Search
+            </button>
         </div>
+        <p class="search-hint">
+            <i class="fas fa-lightbulb"></i>
+            Tip: search by <strong>Item Code</strong> (e.g. RUN-001), <strong>Cabinet #</strong> (e.g. 1), or <strong>Category</strong> (e.g. Running).
+        </p>
     </form>
+</div>
 
-    <!-- 📦 Search Results -->
-    @if (hasResults)
-    {
-        <div id="searchResults" class="search-results visible fade-in">
-            <h3>Search Results for <span class="text-primary">@ViewData["SearchCode"]</span></h3>
-
-            <div class="d-flex justify-content-end mb-3">
-                <button type="button" id="clearSearchBtn" class="btn btn-secondary">
-                    <i class="fas fa-times"></i> Clear Search
-                </button>
-            </div>
-
-            <table class="table table-bordered mt-3">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Item Name</th>
-                        <th>Cabinet Number</th>
-                        <th>Category</th>
-                        <th>Quantity</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var result in results)
-                    {
-                        <tr>
-                            <td>@(result?.ItemName ?? "N/A")</td>
-                            <td>@(result?.CabinetNumber ?? "N/A")</td>
-                            <td>@(result?.Category ?? "N/A")</td>
-                            <td>@(result?.Quantity?.ToString() ?? "0")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
+<div class="center-content">
+    <h1 class="heading">Welcome, Admin!</h1>
+    <p class="subheading">Manage your users and keep the system organized!</p>
 </div>
 
 <style>
-    /* ✅ Overall layout */
-    .dashboard-container {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 40px 20px;
-        transition: all 0.5s ease;
+    .dashboard-search-wrap {
+        max-width: 720px;
+        margin: 30px auto 10px;
+        padding: 24px 28px;
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
     }
-
-    /* Centered view before search */
-    .dashboard-container.centered {
+    .dashboard-search-form .dashboard-search-field {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        height: 80vh;
-        text-align: center;
-    }
-
-    /* Move up when search results appear */
-    .dashboard-container.with-results {
-        margin-top: 30px;
-    }
-
-    /* 👋 Greeting section */
-    .welcome-section h1 {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #222;
-        margin-bottom: 10px;
-    }
-
-    .subtext {
-        font-size: 1rem;
-        color: #666;
-        margin-bottom: 30px;
-    }
-
-    /* 🔍 Modern Canva-like search bar */
-    .search-bar-container {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-    }
-
-    .search-input-wrapper {
+        gap: 10px;
         position: relative;
-        display: flex;
-        align-items: center;
-        width: 100%;
-        max-width: 750px;
-        background: #fff;
-        border-radius: 60px;
-        padding: 12px 20px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
-        border: 1px solid #eee;
     }
-
-    .search-input-wrapper:hover {
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    .dashboard-search-form .search-icon {
+        position: absolute;
+        left: 16px;
+        color: #94a3b8;
+        font-size: 16px;
+        pointer-events: none;
     }
-
-    .search-input-wrapper:focus-within {
-        box-shadow: 0 0 12px rgba(0, 140, 255, 0.4);
-        transform: scale(1.01);
-    }
-
-    .search-input-wrapper input {
+    .dashboard-search-form input[type=text] {
         flex: 1;
-        border: none;
+        padding: 14px 16px 14px 42px;
+        font-size: 15px;
+        border: 2px solid #cbd5e1;
+        border-radius: 10px;
         outline: none;
-        font-size: 1.05rem;
-        padding: 10px 15px;
-        background: transparent;
+        transition: border-color .2s, box-shadow .2s;
     }
-
-    .search-icon {
-        color: #888;
-        font-size: 1.3rem;
-        margin-left: 10px;
+    .dashboard-search-form input[type=text]:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
     }
-
-    .search-btn {
-        background: linear-gradient(90deg, #007bff, #00b4d8);
-        color: #fff;
-        border: none;
-        border-radius: 50px;
-        padding: 10px 24px;
-        font-size: 1rem;
+    .dashboard-search-form .search-submit-btn {
+        padding: 14px 20px;
+        font-size: 15px;
         font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .search-btn:hover {
-        background: linear-gradient(90deg, #006ae0, #009dc2);
-        transform: translateY(-1px);
-    }
-
-    /* 📦 Results table */
-    .search-results {
-        margin-top: 50px;
-        animation: fadeIn 0.8s ease;
-    }
-
-    table th, table td {
-        text-align: center;
-        vertical-align: middle;
-    }
-
-    #clearSearchBtn {
-        background-color: #6c757d;
         color: white;
-        border: none;
-        border-radius: 6px;
-        padding: 6px 12px;
-        transition: 0.2s;
+        background: #4f46e5;
+        border: 2px solid transparent;
+        border-radius: 10px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .2s, transform .05s;
     }
-
-    #clearSearchBtn:hover {
-        background-color: #5a6268;
+    .dashboard-search-form .search-submit-btn:hover { background: #4338ca; }
+    .dashboard-search-form .search-submit-btn:active { transform: translateY(1px); }
+    .search-hint {
+        margin: 14px 0 0;
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.5;
     }
-
-    /* ✨ Fade-in animation */
-    .fade-in {
-        animation: fadeIn 1s ease-in;
-    }
-
-    @@keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    .search-hint i { color: #f59e0b; margin-right: 4px; }
+    .search-hint strong { color: #334155; }
 </style>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const clearBtn = document.getElementById("clearSearchBtn");
-        if (clearBtn) {
-            clearBtn.addEventListener("click", () => {
-                window.location.href = "@Url.Action("Dashboard", "Admin")";
-            });
-        }
-    });
+    (function () {
+        var form = document.getElementById('dashboardSearchForm');
+        var input = document.getElementById('dashboardSearchInput');
+        if (!form || !input) return;
+
+        // Prevent submit if input is empty (otherwise it would just show ViewCabinet without search)
+        form.addEventListener('submit', function (e) {
+            if (input.value.trim() === '') {
+                e.preventDefault();
+                input.focus();
+                input.style.borderColor = '#ef4444';
+                setTimeout(function () { input.style.borderColor = ''; }, 1400);
+            }
+        });
+    })();
 </script>

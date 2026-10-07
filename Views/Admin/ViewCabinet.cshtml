@@ -1,120 +1,455 @@
 @model List<InventorySystemApp.Models.Cabinet>
 
 @{
-    ViewData["Title"] = "Cabinet Overview";
+    ViewData["Title"] = "View Cabinet";
     ViewData["UserType"] = "Admin";
     Layout = "_Layout";
+
+    var searchQuery = ViewData["SearchQuery"] as string ?? string.Empty;
+    var isSearch = ViewData["IsSearch"] as bool? ?? false;
+    var totalCabinetsWithMatch = ViewData["TotalCabinetsWithMatch"] as int? ?? 0;
+    var totalItemQuantity = ViewData["TotalItemQuantity"] as int? ?? 0;
+    var catalogName = ViewData["CatalogName"] as string;
+    var catalogCategory = ViewData["CatalogCategory"] as string;
+
+    bool IsMatch(string? value)
+    {
+        if (!isSearch || string.IsNullOrWhiteSpace(searchQuery) || string.IsNullOrWhiteSpace(value))
+            return false;
+        return value.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
+    }
 }
 
+@await Html.PartialAsync("_Alert")
+
 <div class="container mt-4">
-    <h2 class="text-center mb-5">Cabinet Overview</h2>
-
-    <div class="cabinet-grid">
-        @foreach (var cabinet in Model)
+    <h2 style="margin-bottom:4px;">
+        @if (isSearch)
         {
-            <div class="cabinet-card shadow-sm">
-                <div class="cabinet-header">
-                    <strong>Cabinet @cabinet.CabinetNumber</strong> - @cabinet.Category
+            <i class="fas fa-search" style="color:#4f46e5;"></i>
+            <span>Search Results</span>
+        }
+        else
+        {
+            <i class="fas fa-cubes" style="color:#0f766e;"></i>
+            <span>Cabinet Overview</span>
+        }
+    </h2>
+
+    <!-- SEARCH BAR (stay on ViewCabinet + filter) -->
+    <div class="cabinet-search-panel">
+        <form asp-action="ViewCabinet" asp-controller="Admin" method="get" class="cabinet-search-form">
+            <input
+                type="text"
+                name="search"
+                value="@searchQuery"
+                placeholder="Search item code, cabinet #, or category..."
+                class="cabinet-search-input"
+                autocomplete="off" />
+            <button type="submit" class="cabinet-search-btn">
+                <i class="fas fa-search"></i> Search
+            </button>
+            @if (isSearch)
+            {
+                <a asp-action="ViewCabinet" asp-controller="Admin" class="cabinet-clear-link">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            }
+        </form>
+        <div class="cabinet-search-footer">
+            <a asp-action="Dashboard" asp-controller="Admin" class="cabinet-back-link">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- SEARCH SUMMARY CARD -->
+    @if (isSearch)
+    {
+        <div class="search-summary-card">
+            <div class="search-summary-left">
+                <div class="search-summary-title">
+                    <i class="fas fa-magnifying-glass"></i>
+                    Searched for:
+                    <span class="search-summary-query">@searchQuery</span>
                 </div>
-
-                <div class="cabinet-body">
-                    <p><strong>Capacity:</strong> @cabinet.Capacity</p>
-                    <p><strong>Used Space:</strong> @cabinet.UsedSpace</p>
-
-                    <div class="progress mb-3 mt-2">
-                        <div class="progress-bar" 
-                             role="progressbar" 
-                             style="width:@((cabinet.UsedSpace * 100) / cabinet.Capacity)%;">
-                            @((cabinet.UsedSpace * 100) / cabinet.Capacity)%
-                        </div>
+                <div class="search-summary-stats">
+                    <span class="stat-pill">
+                        <i class="fas fa-warehouse"></i> @totalCabinetsWithMatch cabinet@(totalCabinetsWithMatch == 1 ? "" : "s") matched
+                    </span>
+                    <span class="stat-pill stat-pill-qty">
+                        <i class="fas fa-boxes-stacked"></i> Total qty across all cabinets: <strong>@totalItemQuantity</strong>
+                    </span>
+                    @if (!string.IsNullOrEmpty(catalogName))
+                    {
+                        <span class="stat-pill stat-pill-info">
+                            <i class="fas fa-tag"></i> Catalog: @catalogName
+                            @if (!string.IsNullOrEmpty(catalogCategory))
+                            {
+                                <text> (@catalogCategory)</text>
+                            }
+                        </span>
+                    }
+                </div>
+            </div>
+            <div class="search-summary-right">
+                @if (Model == null || Model.Count == 0)
+                {
+                    <div class="status-badge status-badge-bad">
+                        <i class="fas fa-circle-xmark"></i> NOT AVAILABLE
                     </div>
+                }
+                else
+                {
+                    <div class="status-badge status-badge-good">
+                        <i class="fas fa-circle-check"></i> AVAILABLE
+                    </div>
+                }
+            </div>
+        </div>
+    }
 
-                    <div class="stored-items mt-3">
-                        <strong>Stored Items:</strong>
-                        @if (cabinet.Items != null && cabinet.Items.Any())
+    @if (Model == null || Model.Count == 0)
+    {
+        if (isSearch)
+        {
+            <div class="empty-state-card">
+                <i class="fas fa-box-open empty-state-icon"></i>
+                <h3>Item Not Found</h3>
+                <p>
+                    No cabinets match "<strong>@searchQuery</strong>".
+                    The item may not be in stock or the item code may be incorrect.
+                </p>
+                <a asp-action="Dashboard" asp-controller="Admin" class="btn" style="background:#4f46e5;color:white;display:inline-flex;align-items:center;gap:8px;margin-top:10px;">
+                    <i class="fas fa-arrow-left"></i> Return to Dashboard
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state-card">
+                <i class="fas fa-warehouse empty-state-icon"></i>
+                <h3>No Cabinets Found</h3>
+                <p>There are no cabinets in the system yet. Add cabinets directly in MongoDB to get started.</p>
+            </div>
+        }
+    }
+    else
+    {
+        <table class="table table-bordered table-striped mt-3 cabinet-table">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width:12%;">Cabinet #</th>
+                    <th style="width:18%;">Category</th>
+                    <th style="width:16%;">Used / Capacity</th>
+                    <th style="width:10%;">Occupied</th>
+                    <th>Items</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var cab in Model)
+            {
+                var rowClass = string.Empty;
+                if (isSearch)
+                {
+                    var cabMatch = IsMatch(cab.CabinetNumber) || IsMatch(cab.Category) ||
+                                   (cab.Items != null && cab.Items.Any(i => IsMatch(i.ItemCode)));
+                    rowClass = cabMatch ? "cabinet-row-match" : string.Empty;
+                }
+
+                <tr class="@rowClass">
+                    <td>
+                        @if (IsMatch(cab.CabinetNumber))
                         {
-                            <ul class="list-group mt-2">
-                                @foreach (var item in cabinet.Items)
+                            <span class="hl">@cab.CabinetNumber</span>
+                        }
+                        else
+                        {
+                            @cab.CabinetNumber
+                        }
+                    </td>
+                    <td>
+                        @if (IsMatch(cab.Category))
+                        {
+                            <span class="hl">@cab.Category</span>
+                        }
+                        else
+                        {
+                            @cab.Category
+                        }
+                    </td>
+                    <td>
+                        <div class="capacity-wrap">
+                            <div class="capacity-bar">
+                                @{
+                                    var pct = cab.Capacity > 0 ? (int)Math.Round(100.0 * cab.UsedSpace / cab.Capacity) : 0;
+                                    var barClass = pct >= 90 ? "bar-full" : pct >= 60 ? "bar-mid" : "bar-low";
+                                }
+                                <div class="capacity-bar-fill @barClass" style="width:@pct%;"></div>
+                            </div>
+                            <small>@cab.UsedSpace / @cab.Capacity</small>
+                        </div>
+                    </td>
+                    <td>
+                        @if (cab.IsOccupied)
+                        {
+                            <span class="occ-pill occ-yes">Yes</span>
+                        }
+                        else
+                        {
+                            <span class="occ-pill occ-no">No</span>
+                        }
+                    </td>
+                    <td>
+                        @if (cab.Items != null && cab.Items.Any())
+                        {
+                            <ul class="cab-items-list">
+                                @foreach (var item in cab.Items)
                                 {
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        @item.ItemCode
-                                        <span class="badge bg-secondary">@item.Quantity</span>
+                                    var itemMatch = IsMatch(item.ItemCode);
+                                    <li class="@(itemMatch ? "cab-item-match" : "")">
+                                        @if (itemMatch)
+                                        {
+                                            <span class="hl">@item.ItemCode</span>
+                                        }
+                                        else
+                                        {
+                                            @item.ItemCode
+                                        }
+                                        <span class="cab-qty">Qty: @item.Quantity</span>
                                     </li>
                                 }
                             </ul>
                         }
                         else
                         {
-                            <p class="text-muted mt-3">No items stored yet.</p>
+                            <span class="cab-no-items">No items</span>
                         }
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
 </div>
 
 <style>
-    .cabinet-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 25px;
+    .cabinet-search-panel {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px 18px;
+        margin-top: 14px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
     }
-
-    .cabinet-card {
-        background: #fff;
-        border-radius: 10px;
-        overflow: hidden;
-        border: 1px solid #ddd;
-        transition: transform 0.25s ease, box-shadow 0.25s ease;
-        line-height: 1.6; /* ✅ improved text spacing */
+    .cabinet-search-form {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
     }
-
-    .cabinet-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 5px 14px rgba(0, 0, 0, 0.12);
-    }
-
-    .cabinet-header {
-        background: #0066ff;
-        color: #fff;
-        padding: 12px 18px;
-        font-weight: 600;
-        font-size: 1.05rem;
-        letter-spacing: 0.3px;
-    }
-
-    .cabinet-body {
-        padding: 18px;
-    }
-
-    .progress {
-        height: 14px;
-        background-color: #e9ecef;
+    .cabinet-search-input {
+        flex: 1;
+        min-width: 260px;
+        padding: 11px 14px;
+        border: 2px solid #cbd5e1;
         border-radius: 8px;
-        overflow: hidden;
-        margin-top: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .cabinet-search-input:focus {
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+    .cabinet-search-btn {
+        padding: 11px 16px;
+        background: #4f46e5;
+        color: white;
+        border: 2px solid transparent;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .2s;
+    }
+    .cabinet-search-btn:hover { background: #4338ca; }
+    .cabinet-clear-link {
+        padding: 11px 14px;
+        background: white;
+        color: #475569;
+        border: 2px solid #cbd5e1;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: background .2s, border-color .2s, color .2s;
+    }
+    .cabinet-clear-link:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #0f172a;
+    }
+    .cabinet-search-footer {
+        margin-top: 12px;
+        font-size: 13px;
+    }
+    .cabinet-back-link {
+        color: #4f46e5;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .cabinet-back-link i { margin-right: 4px; }
+    .cabinet-back-link:hover { text-decoration: underline; }
+
+    /* Search summary */
+    .search-summary-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+        padding: 18px 22px;
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        border: 1px solid #c7d2fe;
+        border-radius: 12px;
+    }
+    .search-summary-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1e1b4b;
         margin-bottom: 8px;
     }
+    .search-summary-title i { color: #4f46e5; margin-right: 6px; }
+    .search-summary-query {
+        background: white;
+        color: #1e1b4b;
+        padding: 2px 10px;
+        border-radius: 6px;
+        border: 1px solid #c7d2fe;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 14px;
+    }
+    .search-summary-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .stat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        background: white;
+        border: 1px solid #c7d2fe;
+        color: #312e81;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .stat-pill i { font-size: 12px; }
+    .stat-pill-qty { border-color: #86efac; background: #f0fdf4; color: #166534; }
+    .stat-pill-info { border-color: #fde68a; background: #fffbeb; color: #92400e; }
 
-    .progress-bar {
-        background-color: #ffc107;
-        color: #000;
-        font-size: 0.75rem;
-        font-weight: 600;
+    .status-badge {
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-weight: 800;
+        letter-spacing: .3px;
+        font-size: 14px;
+    }
+    .status-badge-good {
+        background: #dcfce7;
+        color: #166534;
+        border: 2px solid #86efac;
+    }
+    .status-badge-bad {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 2px solid #fecaca;
+    }
+    .status-badge i { margin-right: 6px; }
+
+    /* Empty state */
+    .empty-state-card {
+        margin-top: 20px;
+        padding: 40px 20px;
         text-align: center;
-        line-height: 14px;
-        transition: width 0.5s ease;
+        background: white;
+        border: 2px dashed #cbd5e1;
+        border-radius: 14px;
+    }
+    .empty-state-icon {
+        font-size: 52px;
+        color: #94a3b8;
+        margin-bottom: 12px;
+    }
+    .empty-state-card h3 {
+        margin: 0 0 6px;
+        color: #0f172a;
+        font-size: 20px;
+    }
+    .empty-state-card p {
+        color: #475569;
+        margin: 0;
     }
 
-    .list-group-item {
-        font-size: 0.9rem;
-        border: 1px solid #f0f0f0;
-        padding: 6px 12px;
+    /* Table extras */
+    .cabinet-table td, .cabinet-table th { vertical-align: middle; }
+    .cabinet-row-match { background: #fffbeb !important; }
+    .hl {
+        background: #fde68a;
+        color: #78350f;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-weight: 600;
     }
+    .capacity-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .capacity-bar {
+        height: 10px;
+        background: #e2e8f0;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .capacity-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width .3s;
+    }
+    .bar-low { background: #22c55e; }
+    .bar-mid { background: #f59e0b; }
+    .bar-full { background: #ef4444; }
+    .capacity-wrap small { color: #475569; }
 
-    .stored-items strong {
-        display: block;
-        margin-bottom: 8px; /* ✅ adds breathing space before item list */
+    .occ-pill {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .occ-yes { background: #dcfce7; color: #166534; }
+    .occ-no { background: #f1f5f9; color: #475569; }
+
+    .cab-items-list {
+        margin: 0;
+        padding-left: 20px;
+    }
+    .cab-items-list li {
+        padding: 2px 0;
+    }
+    .cab-items-list li.cab-item-match {
+        background: #fef3c7;
+        padding: 3px 8px;
+        border-radius: 6px;
+        margin: 2px -4px;
+    }
+    .cab-qty {
+        color: #0369a1;
+        font-weight: 600;
+        margin-left: 6px;
+    }
+    .cab-no-items {
+        color: #94a3b8;
+        font-style: italic;
     }
 </style>

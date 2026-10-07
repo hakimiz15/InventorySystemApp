@@ -1,27 +1,51 @@
 @{
     ViewData["Title"] = "Add Item";
+    ViewData["UserType"] = "User";
     Layout = "_Layout";
 }
 
-<div class="form-container">
-    <h2>Add Item</h2>
+@await Html.PartialAsync("_Alert")
 
-    @if (TempData["Message"] != null)
-    {
-        <div class="alert alert-info">@TempData["Message"]</div>
-    }
+<div class="form-container">
+    <h2><i class="fas fa-box-open" style="color:#0f766e;"></i> Place Item in Cabinet</h2>
+    <p class="form-subtitle">
+        <i class="fas fa-info-circle"></i>
+        Enter the item code and how many units you want to store. The system will place it automatically.
+    </p>
 
     <form method="post" asp-action="AddItem">
         <div class="form-group">
-            <label>Item Code</label>
-            <input type="text" name="itemCode" placeholder="Enter item code" required />
+            <label for="itemCode"><i class="fas fa-barcode"></i> Item Code</label>
+            <input type="text" id="itemCode" name="itemCode" placeholder="e.g. RUN-001" required />
+            <small class="form-help-text">
+                The item must already exist in the Item Catalog before it can be placed.
+            </small>
         </div>
 
         <div class="form-group">
-            <label>Quantity</label>
-            <input type="number" name="quantity" placeholder="Enter quantity" required />
+            <label for="quantity"><i class="fas fa-hashtag"></i> Quantity</label>
+            <input type="number" id="quantity" name="quantity" placeholder="Enter quantity" min="1" value="1" required />
+            <small class="form-help-text">
+                Minimum 1. Large quantities may be split across multiple cabinets.
+            </small>
         </div>
 
-        <button type="submit" class="btn">Add Item</button>
+        <div class="form-info-card">
+            <strong><i class="fas fa-lightbulb"></i> How It Works:</strong>
+            <ul>
+                <li>If the same item already exists in a cabinet, it is added there first.</li>
+                <li>Otherwise it goes into the first empty cabinet in the item's category.</li>
+                <li>If no space in the category, it overflows into other categories by priority.</li>
+            </ul>
+        </div>
+
+        <div class="form-actions" style="display:flex;flex-direction:column;margin-top:30px;">
+            <button type="submit" class="btn btn-success" style="width:100%;padding:12px 20px;margin-bottom:20px;background:#16a34a !important;color:white !important;border:2px solid transparent !important;">
+                <i class="fas fa-plus-circle"></i> Place Item
+            </button>
+            <button type="reset" class="btn btn-outline" style="width:100%;padding:12px 20px;background:white !important;color:#475569 !important;border:2px solid #cbd5e1 !important;">
+                <i class="fas fa-undo"></i> Reset
+            </button>
+        </div>
     </form>
 </div>

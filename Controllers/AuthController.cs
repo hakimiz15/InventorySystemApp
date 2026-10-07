@@ -30,26 +30,43 @@ namespace InventorySystemApp.Controllers
         {
             _logger.LogInformation("Login attempt for username: {Username}", username);
 
-            var user = _mongoService.AuthenticateUser(username, password);
+            var result = _mongoService.AttemptLogin(username, password);
 
-            if (user != null)
+            // --- Pass lockout / warning info down to the view (Login.cshtml uses these) ---
+            ViewBag.IsLockedOut      = result.IsLockedOut;
+            ViewBag.LockoutUntilUtc  = result.LockoutUntilUtc;
+            ViewBag.FailedAttempts   = result.FailedAttempts;
+            ViewBag.MaxAttempts      = MongoDBService.MAX_FAILED_ATTEMPTS_BEFORE_LOCKOUT;
+            ViewBag.LockoutMinutes   = (int)MongoDBService.LOCKOUT_DURATION.TotalMinutes;
+            ViewBag.LastUsername     = username;
+
+            if (result.IsSuccess && result.User != null)
             {
-                _logger.LogInformation("User authenticated: {Username} ({Role})", user.Username, user.Role);
+                _logger.LogInformation("User authenticated: {Username} ({Role})", result.User.Username, result.User.Role);
 
                 // Set session for username and role
-                HttpContext.Session.SetString("Username", user.Username);
-                HttpContext.Session.SetString("Role", user.Role);
+                HttpContext.Session.SetString("Username", result.User.Username);
+                HttpContext.Session.SetString("Role", result.User.Role);
 
                 // Redirect based on role
-                if (user.Role.ToLower() == "admin")
+                if (string.Equals(result.User.Role, "admin", StringComparison.OrdinalIgnoreCase))
                     return RedirectToAction("Dashboard", "Admin");
                 else
                     return RedirectToAction("Dashboard", "User");
             }
 
-            _logger.LogWarning("Login failed for username: {Username}", username);
+            // --- Failed or locked ---
+            if (result.IsLockedOut)
+            {
+                _logger.LogWarning("Login denied (locked out) for username: {Username}", username);
+                ViewBag.ErrorMessage = result.Message;
+            }
+            else
+            {
+                _logger.LogWarning("Login failed for username: {Username}", username);
+                ViewBag.ErrorMessage = "Invalid username or password.";
+            }
 
-            ViewBag.ErrorMessage = "Invalid username or password";
             return View();
         }
 

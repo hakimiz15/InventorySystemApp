@@ -1,110 +1,90 @@
 using InventorySystemApp.Data;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
 
 namespace InventorySystemApp.Controllers
 {
-    public class UserController : Controller
+    public class UserController(MongoDBService mongoService) : Controller
     {
-        private readonly MongoDBService _mongoService;
+        private readonly MongoDBService _mongoService = mongoService;
 
-        public UserController(MongoDBService mongoService)
-        {
-            _mongoService = mongoService;
-        }
-
-        // 🏠 USER DASHBOARD
+        // ✅ USER DASHBOARD
         public IActionResult Dashboard()
         {
-            return View();
+            return View(); // Views/User/Dashboard.cshtml
         }
 
-        // 🔍 SEARCH ITEM
-        [HttpGet]
-        public IActionResult SearchItem(string itemCode)
-        {
-            if (string.IsNullOrWhiteSpace(itemCode))
-            {
-                TempData["Message"] = "⚠️ Please enter an item code to search.";
-                return RedirectToAction("Dashboard");
-            }
-
-            var cabinets = _mongoService.GetAllCabinets();
-            var results = cabinets
-                .Where(c => c.Items != null && c.Items.Any(i => i.ItemCode == itemCode))
-                .SelectMany(c => c.Items
-                    .Where(i => i.ItemCode == itemCode)
-                    .Select(i => new
-                    {
-                        ItemName = _mongoService.GetItemCatalogByCode(itemCode)?.ItemName ?? "Unknown",
-                        CabinetNumber = c.CabinetNumber,
-                        Category = c.Category,
-                        Quantity = i.Quantity
-                    }))
-                .ToList();
-
-            if (results == null || !results.Any())
-            {
-                TempData["Message"] = "❌ No items found for the entered item code.";
-                return RedirectToAction("Dashboard");
-            }
-
-            ViewData["SearchResults"] = results;
-            ViewData["SearchCode"] = itemCode;
-
-            return View("Dashboard");
-        }
-
-        // ➕ ADD ITEM
+        // ✅ ADD ITEM
         [HttpGet]
         public IActionResult AddItem()
         {
-            return View();
+            return View(); // Views/User/AddItem.cshtml
         }
 
         [HttpPost]
-public IActionResult AddItem(string itemCode, int quantity)
-{
-    var currentUser = _mongoService.GetUserByUsername(User.Identity?.Name ?? "User");
-    string executedBy = currentUser?.FirstName ?? (User.Identity?.Name ?? "User");
+        public IActionResult AddItem(string itemCode, int quantity)
+        {
+            var success = _mongoService.PlaceItemInCabinet(itemCode, quantity);
 
-    // Call MongoDB service (returns success + cabinetNumber)
-    var result = _mongoService.PlaceItemInCabinet(itemCode, quantity, executedBy);
+            TempData["Message"] = success
+                ? $"✅ Item {itemCode} added successfully!"
+                : $"❌ Failed to add item {itemCode}. No suitable cabinet found.";
+            
+            return RedirectToAction("AddItem");
+        }
 
-    TempData["Message"] = result.success
-        ? $"✅ Item '{itemCode}' placed automatically into Cabinet {result.cabinetNumber} by {executedBy}."
-        : $"❌ Failed to add item '{itemCode}'. No suitable cabinet found.";
-
-    return RedirectToAction("AddItem");
-}
-
-
-        // ➖ REMOVE ITEM
+        // ✅ REMOVE ITEM
         [HttpGet]
         public IActionResult RemoveItem()
         {
-            return View();
+            return View(); // Views/User/RemoveItem.cshtml
         }
 
         [HttpPost]
         public IActionResult RemoveItem(string itemCode, string cabinetNumber, int quantity)
         {
-            var currentUser = _mongoService.GetUserByUsername(User.Identity?.Name ?? "User");
-            string executedBy = currentUser?.FirstName ?? (User.Identity?.Name ?? "User");
-
-            bool success = _mongoService.RemoveItemFromCabinet(itemCode, cabinetNumber, quantity, executedBy);
+            var success = _mongoService.RemoveItemFromCabinet(itemCode, cabinetNumber, quantity);
 
             TempData["Message"] = success
-                ? $"✅ Item '{itemCode}' removed successfully from Cabinet {cabinetNumber} by {executedBy}."
-                : $"❌ Failed to remove item '{itemCode}'. Please check the details.";
+                ? $"✅ Item {itemCode} removed successfully from Cabinet {cabinetNumber}."
+                : $"❌ Failed to remove item {itemCode}. Please check the details.";
 
             return RedirectToAction("RemoveItem");
         }
 
-        // 🧾 VIEW CABINET
+        // ✅ VIEW CABINET (original layout — no filtering, no search results)
         public IActionResult ViewCabinet()
         {
             var cabinets = _mongoService.GetAllCabinets();
+            return View(cabinets);
+        }
+
+        // ✅ SEARCH CABINET (separate page for search results only)
+        public IActionResult SearchCabinet(string search)
+        {
+            List<Models.Cabinet> cabinets;
+            bool isSearch = !string.IsNullOrWhiteSpace(search);
+
+            if (isSearch)
+                cabinets = _mongoService.SearchCabinetsByItem(search!);
+            else
+                cabinets = [];
+
+            ViewData["SearchQuery"] = search ?? string.Empty;
+            ViewData["IsSearch"] = isSearch;
+
+            if (isSearch)
+            {
+                ViewData["TotalCabinetsWithMatch"] = cabinets.Count;
+                ViewData["TotalItemQuantity"] = _mongoService.GetTotalItemQuantityAcrossCabinets(search!);
+
+                var catalogItem = _mongoService.GetItemCatalogByCode(search!.Trim());
+                if (catalogItem != null)
+                {
+                    ViewData["CatalogName"] = catalogItem.ItemName;
+                    ViewData["CatalogCategory"] = catalogItem.Category;
+                }
+            }
+
             return View(cabinets);
         }
     }

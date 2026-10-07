@@ -1,196 +1,109 @@
 @{
-    Layout = "_Layout";
+    Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "User Dashboard";
     ViewData["UserType"] = "User";
 }
 
-<div class="dashboard-container">
-    <!-- 🟣 Welcome Section -->
-    <div class="header-section">
-        <h1 class="heading">Welcome, User!</h1>
-        <p class="subheading">Search for item codes to check their storage location.</p>
-    </div>
+@await Html.PartialAsync("_Alert")
 
-    <!-- 🔍 Search Bar -->
-    <form asp-action="SearchItem" asp-controller="User" method="get" class="search-form" id="searchForm">
-    <input type="text" name="itemCode"
-           placeholder="Search item code..."
-           class="search-input"
-           value="@(ViewData["SearchResults"] != null ? "" : ViewData["SearchCode"] ?? "")"
-           required />
-
-    <button type="submit" class="search-btn">
-        <i class="fas fa-search"></i> Search
-    </button>
-
-    <!-- ✖️ Clear button -->
-    <button type="button" id="clearSearch" class="clear-btn">
-        <i class="fas fa-times"></i>
-    </button>
-</form>
-
-    <!-- 📊 Search Results -->
-    @if (ViewData["SearchResults"] != null)
-    {
-        var searchResults = ViewData["SearchResults"] as IEnumerable<dynamic>;
-
-        if (searchResults != null && searchResults.Any())
-        {
-            <div class="results-container">
-                <h3>Search Results for "@ViewData["SearchCode"]":</h3>
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr>
-                            <th>Item Name</th>
-                            <th>Cabinet Number</th>
-                            <th>Category</th>
-                            <th>Quantity</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in searchResults)
-                        {
-                            <tr>
-                                <td>@item.ItemName</td>
-                                <td>@item.CabinetNumber</td>
-                                <td>@item.Category</td>
-                                <td>@item.Quantity</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-        else
-        {
-            <div class="alert alert-warning fade-in">❌ No results found for that item code.</div>
-        }
-    }
+<div class="dashboard-search-wrap">
+    <form asp-action="SearchCabinet" asp-controller="User" method="get" class="dashboard-search-form" id="userDashboardSearchForm">
+        <div class="dashboard-search-field">
+            <i class="fas fa-search search-icon"></i>
+            <input
+                type="text"
+                id="userDashboardSearchInput"
+                name="search"
+                placeholder="Enter item code, cabinet #, or category to search..."
+                autocomplete="off" />
+            <button type="submit" class="search-submit-btn">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+        <p class="search-hint">
+            <i class="fas fa-lightbulb"></i>
+            Tip: search by <strong>Item Code</strong> (e.g. RUN-001), <strong>Cabinet #</strong> (e.g. 1), or <strong>Category</strong> (e.g. Running).
+        </p>
+    </form>
 </div>
 
-<script>
-    // 🧹 Clear search field and reload page
-    document.getElementById("clearSearch").addEventListener("click", function () {
-        const input = document.querySelector(".search-input");
-        input.value = "";
-        window.location.href = "/User/Dashboard"; // reload to reset
-    });
-</script>
+<div class="center-content">
+    <h1 class="heading">Welcome, User!</h1>
+    <p class="subheading">Organize your overstocks and lessen your workload!</p>
+</div>
 
-<!-- 🎨 Styling -->
 <style>
-    .dashboard-container {
-        max-width: 900px;
-        margin: 40px auto;
-        text-align: center;
+    .dashboard-search-wrap {
+        max-width: 720px;
+        margin: 30px auto 10px;
+        padding: 24px 28px;
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
     }
-
-    .header-section {
-        margin-bottom: 25px;
-    }
-
-    .heading {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #333;
-        margin-bottom: 10px;
-    }
-
-    .subheading {
-        color: #666;
-        font-size: 1rem;
-        margin-bottom: 30px;
-    }
-
-    /* 🔍 Search Bar Styling (Canva-style) */
-   .search-form {
+    .dashboard-search-form .dashboard-search-field {
         display: flex;
-        justify-content: center;
         align-items: center;
         gap: 10px;
-        width: 100%;
-        max-width: 600px;
-        margin: 0 auto 40px;
-        background: #fff;
-        border-radius: 50px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        padding: 8px 15px;
         position: relative;
     }
-
-    .search-input {
-        flex: 1;
-        border: none;
-        outline: none;
-        font-size: 1rem;
-        padding: 12px 18px;
-        border-radius: 50px;
-        background-color: transparent;
-        color: #333;
-    }
-
-    .search-btn {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        border: none;
-        color: white;
-        padding: 10px 24px;
-        font-size: 1rem;
-        border-radius: 50px;
-        cursor: pointer;
-        transition: background 0.3s ease, transform 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .search-btn:hover {
-        background: linear-gradient(135deg, #5a67d8, #6b46c1);
-        transform: translateY(-2px);
-    }
-
-    /* ✖️ Clear button styling */
-    .clear-btn {
+    .dashboard-search-form .search-icon {
         position: absolute;
-        right: 90px;
-        background: transparent;
-        border: none;
-        color: #888;
-        font-size: 1.1rem;
-        cursor: pointer;
-        transition: color 0.2s ease;
+        left: 16px;
+        color: #94a3b8;
+        font-size: 16px;
+        pointer-events: none;
     }
-
-    .clear-btn:hover {
-        color: #555;
+    .dashboard-search-form input[type=text] {
+        flex: 1;
+        padding: 14px 16px 14px 42px;
+        font-size: 15px;
+        border: 2px solid #cbd5e1;
+        border-radius: 10px;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
     }
-
-    .results-container {
-        margin-top: 30px;
-        text-align: left;
+    .dashboard-search-form input[type=text]:focus {
+        border-color: #0f766e;
+        box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
     }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 15px;
-    }
-
-    table th, table td {
-        text-align: center;
-        padding: 12px;
-    }
-
-    th {
-        background: #667eea;
+    .dashboard-search-form .search-submit-btn {
+        padding: 14px 20px;
+        font-size: 15px;
+        font-weight: 600;
         color: white;
-        border-bottom: 2px solid #ddd;
+        background: #0f766e;
+        border: 2px solid transparent;
+        border-radius: 10px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .2s, transform .05s;
     }
-
-    td {
-        background: #fff;
+    .dashboard-search-form .search-submit-btn:hover { background: #0d5f58; }
+    .dashboard-search-form .search-submit-btn:active { transform: translateY(1px); }
+    .search-hint {
+        margin: 14px 0 0;
+        color: #64748b;
+        font-size: 13px;
+        line-height: 1.5;
     }
-
-    tr:nth-child(even) td {
-        background: #f9f9f9;
-    }
+    .search-hint i { color: #f59e0b; margin-right: 4px; }
+    .search-hint strong { color: #334155; }
 </style>
+
+<script>
+    (function () {
+        var form = document.getElementById('userDashboardSearchForm');
+        var input = document.getElementById('userDashboardSearchInput');
+        if (!form || !input) return;
+
+        form.addEventListener('submit', function (e) {
+            if (input.value.trim() === '') {
+                e.preventDefault();
+                input.focus();
+                input.style.borderColor = '#ef4444';
+                setTimeout(function () { input.style.borderColor = ''; }, 1400);
+            }
+        });
+    })();
+</script>

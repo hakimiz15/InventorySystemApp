@@ -1,12 +1,102 @@
-bin/
-obj/
+# ======================================================
+# ASP.NET Core + Visual Studio / Rider / VS Code
+# ======================================================
+
+## Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio
 .vs/
-*.user
-*.suo
-packages/
-*.nupkg
-[Bb]uild/
-*.log
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 .idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.user
+
+## Rider / MonoDevelop
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+## NuGet
+*.nupkg
+packages/
+build/
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+!**/[Pp]ackages/*/
+
+## ASP.NET / .NET Core secrets & local tools
+*.psess
+*.vsp
+*.vspx
+*.sap
+~$*
+*.tmp
+*.log
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+.secrets/
+data-protection-keys/
+
+## ReSharper / StyleCop
+_ReSharper*/
+*.[Rr]e[Ss]harper
 *.DotSettings.user
-*.cache
+
+## Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.binlog
+*.blg
+
+## Installer / output
+*.msi
+*.exe
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+*.cab
+
+## Published app output
+publish/
+*.Publish.xml
+
+## WinMerge / Diff tools
+*.orig
+
+## OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+## Node.js / frontend (if added later)
+node_modules/
+dist/
+
+## Unity / misc generated
+*.csproj.user
+*.rsuser
+*.bak

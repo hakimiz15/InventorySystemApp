@@ -5,63 +5,15 @@ using System.Collections.Generic;
 
 namespace InventorySystemApp.Controllers
 {
-    public class AdminController : Controller
+    public class AdminController(MongoDBService mongoService) : Controller
     {
-        private readonly MongoDBService _mongoService;
-
-        public AdminController(MongoDBService mongoService)
-        {
-            _mongoService = mongoService;
-        }
+        private readonly MongoDBService _mongoService = mongoService;
 
         // GET: Admin Dashboard
         public IActionResult Dashboard()
         {
             return View();
         }
-
-        [HttpGet]
-public IActionResult SearchItem(string itemCode)
-{
-    if (string.IsNullOrWhiteSpace(itemCode))
-    {
-        TempData["Message"] = "⚠️ Please enter an item code to search.";
-        return RedirectToAction("Dashboard");
-    }
-
-    var cabinets = _mongoService.GetAllCabinets();
-    var catalogItem = _mongoService.GetItemCatalogByCode(itemCode);
-
-    if (catalogItem == null)
-    {
-        TempData["Message"] = $"❌ No item found with code '{itemCode}'.";
-        return RedirectToAction("Dashboard");
-    }
-
-    // Find all cabinets that contain this item
-    var results = cabinets
-        .Where(c => c.Items != null && c.Items.Any(i => i.ItemCode == itemCode))
-        .Select(c => new
-        {
-            ItemName = catalogItem.ItemName,
-            CabinetNumber = c.CabinetNumber,
-            Category = c.Category,
-            Quantity = c.Items.First(i => i.ItemCode == itemCode).Quantity
-        })
-        .ToList<dynamic>();
-
-    if (results.Any())
-    {
-        ViewData["SearchResults"] = results;
-        ViewData["SearchCode"] = itemCode;
-    }
-    else
-    {
-        TempData["Message"] = $"🔍 No cabinet currently contains the item '{itemCode}'.";
-    }
-
-    return View("Dashboard");
-}
 
         // GET: Add Item
         public IActionResult AddItem()
@@ -71,21 +23,17 @@ public IActionResult SearchItem(string itemCode)
 
         // POST: Add Item
         [HttpPost]
-public IActionResult AddItem(string itemCode, int quantity)
-{
-    var currentUser = _mongoService.GetUserByUsername(User.Identity?.Name ?? "User");
-    string executedBy = currentUser?.FirstName ?? (User.Identity?.Name ?? "User");
+        public IActionResult AddItem(string itemCode, int quantity)
+        {
+            bool success = _mongoService.PlaceItemInCabinet(itemCode, quantity);
 
-    // Call MongoDB service (returns success + cabinetNumber)
-    var result = _mongoService.PlaceItemInCabinet(itemCode, quantity, executedBy);
+            if (success)
+                TempData["Message"] = $"✅ Item '{itemCode}' successfully placed in an available cabinet.";
+            else
+                TempData["Message"] = $"⚠️ Failed to place item '{itemCode}'. No suitable cabinet found.";
 
-    TempData["Message"] = result.success
-        ? $"✅ Item '{itemCode}' placed automatically into Cabinet {result.cabinetNumber} by {executedBy}."
-        : $"❌ Failed to add item '{itemCode}'. No suitable cabinet found.";
-
-    return RedirectToAction("AddItem");
-}
-
+            return RedirectToAction("AddItem");
+        }
 
         // GET: Remove Item
         public IActionResult RemoveItem()
@@ -97,11 +45,7 @@ public IActionResult AddItem(string itemCode, int quantity)
         [HttpPost]
 public IActionResult RemoveItem(string itemCode, string cabinetNumber, int quantity)
 {
-        var currentUser = _mongoService.GetUserByUsername(User.Identity?.Name ?? "Admin");
-        string executedBy = currentUser?.FirstName ?? (User.Identity?.Name ?? "Admin");
-
-bool result = _mongoService.RemoveItemFromCabinet(itemCode, cabinetNumber, quantity, executedBy);
-
+    bool result = _mongoService.RemoveItemFromCabinet(itemCode, cabinetNumber, quantity);
 
     TempData["Message"] = result
         ? $"✅ Item '{itemCode}' successfully removed from Cabinet {cabinetNumber}!"
@@ -110,10 +54,34 @@ bool result = _mongoService.RemoveItemFromCabinet(itemCode, cabinetNumber, quant
     return RedirectToAction("RemoveItem");
 }
 
-        // GET: View Cabinets
-        public IActionResult ViewCabinet()
+        // GET: View Cabinets (with optional item search)
+        public IActionResult ViewCabinet(string search)
         {
-            var cabinets = _mongoService.GetAllCabinets();
+            List<Cabinet> cabinets;
+            bool isSearch = !string.IsNullOrWhiteSpace(search);
+
+            if (isSearch)
+                cabinets = _mongoService.SearchCabinetsByItem(search!);
+            else
+                cabinets = _mongoService.GetAllCabinets();
+
+            // Aggregate data for the UI summary
+            ViewData["SearchQuery"] = search ?? string.Empty;
+            ViewData["IsSearch"] = isSearch;
+
+            if (isSearch)
+            {
+                ViewData["TotalCabinetsWithMatch"] = cabinets.Count;
+                ViewData["TotalItemQuantity"] = _mongoService.GetTotalItemQuantityAcrossCabinets(search!);
+
+                var catalogItem = _mongoService.GetItemCatalogByCode(search!.Trim());
+                if (catalogItem != null)
+                {
+                    ViewData["CatalogName"] = catalogItem.ItemName;
+                    ViewData["CatalogCategory"] = catalogItem.Category;
+                }
+            }
+
             return View(cabinets);
         }
 
@@ -141,43 +109,66 @@ bool result = _mongoService.RemoveItemFromCabinet(itemCode, cabinetNumber, quant
             return RedirectToAction("AddUser");
         }
 
-                // ✅ View Blockchain Records
-        public IActionResult ViewBlockchain()
+        // GET: Remove User
+        public IActionResult RemoveUser(string? username)
         {
-            var blocks = _mongoService.GetBlocks();
-            var (ok, errorAt) = _mongoService.VerifyChain();
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                var existing = _mongoService
+                    .GetAllUsers()
+                    .FirstOrDefault(u => string.Equals(u.Username, username, StringComparison.OrdinalIgnoreCase));
 
-            ViewBag.IsValid = ok;
-            ViewBag.ErrorAt = errorAt;
+                if (existing != null)
+                {
+                    ViewData["PrefillUsername"] = existing.Username;
+                    ViewData["PrefillEmail"]    = existing.Email;
+                }
+            }
 
-            return View(blocks);
-    }
+            return View();
+        }
 
-        // POST: Remove User  
         [HttpPost]
-public IActionResult DeleteUser(string username)
-{
-    if (string.IsNullOrEmpty(username))
-    {
-        TempData["Message"] = "⚠️ Invalid username.";
-        return RedirectToAction("ViewUsers");
-    }
+        public IActionResult RemoveUser(string username, string email)
+        {
+            var user = _mongoService.GetAllUsers()
+                                    .Find(u => u.Username == username && u.Email == email);
 
-    // Delete user from MongoDB
-    _mongoService.RemoveUser(username);
+            if (user != null)
+            {
+                _mongoService.RemoveUser(username);
+                TempData["Message"] = $"✅ User '{username}' has been removed successfully!";
+            }
+            else
+            {
+                TempData["Message"] = $"⚠️ User '{username}' not found or email mismatch.";
+            }
 
-    TempData["Message"] = $"❌ User '{username}' has been removed successfully.";
-    return RedirectToAction("ViewUsers");
-}
+            return RedirectToAction("RemoveUser");
+        }
 
+        // GET: View Users
+        public IActionResult ViewUsers(string? search)
+        {
+            var allUsers = _mongoService.GetAllUsers();
 
-        // ✅ VIEW ALL USERS
-public IActionResult ViewUsers()
-{
-    var users = _mongoService.GetAllUsers();
-    return View(users); // Views/Admin/ViewUsers.cshtml
-}
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var q = search.Trim();
+                allUsers = allUsers
+                    .Where(u =>
+                        (!string.IsNullOrEmpty(u.Username) && u.Username.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrEmpty(u.FirstName) && u.FirstName.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrEmpty(u.LastName) && u.LastName.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrEmpty(u.Email) && u.Email.Contains(q, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrEmpty(u.Role) && u.Role.Contains(q, StringComparison.OrdinalIgnoreCase))
+                    )
+                    .ToList();
+            }
 
+            ViewData["SearchQuery"] = search;
+            return View(allUsers);
+        }
 
         // GET: View Login Logs
         public IActionResult LoginLogs()

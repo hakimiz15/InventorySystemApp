@@ -4,59 +4,89 @@
     Layout = "_Layout";
 }
 
+@await Html.PartialAsync("_Alert")
+
 <div class="form-container">
-    <h2>Add New User</h2>
+    <h2><i class="fas fa-user-plus"></i> Add New User</h2>
+    <p class="form-subtitle">Fill in all fields below to create a new user account.</p>
 
-    @* Display success or error message *@
-    @if (TempData["Message"] != null)
-    {
-        <div class="alert alert-info">
-            @TempData["Message"]
-        </div>
-    }
-
-    <form method="post" asp-action="AddUser">
+    <form method="post" asp-action="AddUser" onsubmit="return validatePasswords()">
         <div class="form-row">
             <div class="form-group">
-                <label for="first-name">First Name</label>
-                <input type="text" id="first-name" name="firstName" placeholder="Enter first name" required />
+                <label for="firstName"><i class="fas fa-user"></i> First Name</label>
+                <input type="text" id="firstName" name="firstName" placeholder="e.g. John" required />
             </div>
             <div class="form-group">
-                <label for="last-name">Last Name</label>
-                <input type="text" id="last-name" name="lastName" placeholder="Enter last name" required />
+                <label for="lastName"><i class="fas fa-user"></i> Last Name</label>
+                <input type="text" id="lastName" name="lastName" placeholder="e.g. Doe" required />
             </div>
         </div>
 
         <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="Enter email address" required />
+            <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
+            <input type="email" id="email" name="email" placeholder="e.g. john.doe@example.com" required />
         </div>
 
         <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" placeholder="Enter username" required />
+            <label for="username"><i class="fas fa-user-circle"></i> Username</label>
+            <input type="text" id="username" name="username" placeholder="Enter a unique username" minlength="3" required />
+            <small class="form-help-text">Username must be at least 3 characters long.</small>
         </div>
 
         <div class="form-row">
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter password" required />
+                <label for="password"><i class="fas fa-lock"></i> Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter password" minlength="4" required />
+                <small class="form-help-text">Password must be at least 4 characters long.</small>
             </div>
             <div class="form-group">
-                <label for="retype-password">Re-type Password</label>
-                <input type="password" id="retype-password" name="retypePassword" placeholder="Re-enter password" required />
+                <label for="retypePassword"><i class="fas fa-lock"></i> Confirm Password</label>
+                <input type="password" id="retypePassword" name="retypePassword" placeholder="Re-enter password" minlength="4" required />
+                <small id="passwordMismatchError" class="form-error-text" style="display:none;">Passwords do not match.</small>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="role">Role</label>
+            <label for="role"><i class="fas fa-user-tag"></i> Role</label>
             <select id="role" name="role" required>
-                <option value="" disabled selected>Select role</option>
-                <option value="Admin">Admin</option>
-                <option value="User">User</option>
+                <option value="" disabled selected>-- Select a role --</option>
+                <option value="Admin"><i class="fas fa-user-shield"></i> Admin</option>
+                <option value="User"><i class="fas fa-user"></i> User</option>
             </select>
         </div>
 
-        <button type="submit" class="btn btn-primary">Add User</button>
+        <div class="form-actions" style="display:flex;flex-direction:column;margin-top:30px;">
+            <button type="submit" class="btn btn-success" style="width:100%;padding:12px 20px;margin-bottom:20px;background:#16a34a !important;color:white !important;border:2px solid transparent !important;">
+                <i class="fas fa-plus-circle"></i> Add User
+            </button>
+            <button type="reset" class="btn btn-outline" style="width:100%;padding:12px 20px;background:white !important;color:#475569 !important;border:2px solid #cbd5e1 !important;">
+                <i class="fas fa-undo"></i> Reset
+            </button>
+        </div>
     </form>
 </div>
+
+<script>
+    function validatePasswords() {
+        var pass = document.getElementById('password').value;
+        var confirm = document.getElementById('retypePassword').value;
+        var errorEl = document.getElementById('passwordMismatchError');
+
+        if (pass !== confirm) {
+            errorEl.style.display = 'block';
+            return false;
+        }
+        errorEl.style.display = 'none';
+        return true;
+    }
+
+    document.getElementById('retypePassword').addEventListener('input', function () {
+        var pass = document.getElementById('password').value;
+        var errorEl = document.getElementById('passwordMismatchError');
+        if (this.value && pass !== this.value) {
+            errorEl.style.display = 'block';
+        } else {
+            errorEl.style.display = 'none';
+        }
+    });
+</script>

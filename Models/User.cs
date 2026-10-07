@@ -14,5 +14,17 @@ namespace InventorySystemApp.Models
         public string PasswordHash { get; set; } = null!;
         public string Role { get; set; } = null!;
         public string Email { get; set; } = null!;
+
+        // ---------- Brute-force lockout tracking ----------
+        /// <summary>Number of consecutive failed login attempts since the last success.</summary>
+        [BsonDefaultValue(0)]
+        public int FailedAttempts { get; set; } = 0;
+
+        /// <summary>
+        /// Until when this account is temporarily locked out (UTC).
+        /// NULL means "not locked out right now".
+        /// </summary>
+        [BsonIgnoreIfNull]
+        public DateTime? LockoutUntilUtc { get; set; }
     }
 }

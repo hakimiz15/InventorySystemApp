@@ -1,6 +1,17 @@
 @{
-    Layout = "_LoginLayout";
+    Layout = null;
     ViewData["Title"] = "Login";
+
+    // ---- Pull lockout / attempt state populated by AuthController.Login POST ----
+    bool isLocked   = ViewBag.IsLockedOut == true;
+    int  fails      = ViewBag.FailedAttempts as int? ?? 0;
+    int  max        = ViewBag.MaxAttempts    as int? ?? 3;
+    int  lockMin    = ViewBag.LockoutMinutes as int? ?? 5;
+    DateTime? until = ViewBag.LockoutUntilUtc as DateTime?;
+    string lastUser = ViewBag.LastUsername as string ?? string.Empty;
+    int remaining   = Math.Max(0, max - fails);
+    int failPct     = max > 0 ? (int)Math.Round(100.0 * Math.Min(fails, max) / max) : 0;
+    bool showWarn   = !isLocked && fails > 0;
 }
 
 <!DOCTYPE html>
@@ -9,6 +20,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Overstock System - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
         * {
             margin: 0;
@@ -19,31 +31,34 @@
 
         body {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
+            gap: 80px;
             height: 100vh;
             background-color: #3643ba;
+            padding: 20px;
         }
 
         .left-image {
-            flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             color: white;
             text-align: center;
+            max-width: 500px;
         }
 
         .left-image img {
             width: 400px;
+            max-width: 100%;
             height: auto;
-            transform: translateY(-100px);
+            margin-bottom: 20px;
         }
 
         .left-image h1 {
             font-size: 2rem;
-            margin-top: -100px;
+            margin-top: 0;
         }
 
         .left-image p {
@@ -60,7 +75,6 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             text-align: center;
-            margin-right: 200px;
         }
 
         h2 {
@@ -94,6 +108,12 @@
         input:focus {
             border-color: #00c4cc;
         }
+        input:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
+            opacity: .7;
+        }
 
         .btn {
             width: 100%;
@@ -106,10 +126,16 @@
             cursor: pointer;
             transition: background 0.3s;
             margin-top: 0.5rem;
+            font-weight: 600;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             background: #00a9b0;
+        }
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            opacity: .7;
         }
 
         .footer-text {
@@ -130,9 +156,98 @@
         }
 
         .error-message {
-            color: red;
+            color: #991b1b;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            padding: 0.6rem 0.8rem;
+            border-radius: 8px;
             margin-bottom: 1rem;
             text-align: center;
+            font-weight: 600;
+            font-size: 0.87rem;
+        }
+
+        /* ---- Brute-force banners ---- */
+        .banner {
+            padding: 0.75rem 0.85rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.86rem;
+            line-height: 1.5;
+            text-align: left;
+            border-width: 1px;
+            border-style: solid;
+            font-weight: 500;
+        }
+        .banner i { margin-right: 8px; }
+        .banner strong { font-weight: 700; }
+        .banner small { display: block; margin-top: 4px; opacity: 0.92; }
+
+        .banner-lockout {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #7f1d1d;
+        }
+        .banner-lockout .countdown {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 3px 10px;
+            background: #fecaca;
+            color: #7f1d1d;
+            border-radius: 999px;
+            font-variant-numeric: tabular-nums;
+            font-weight: 800;
+            letter-spacing: .3px;
+        }
+
+        .banner-warning {
+            background: #fef3c7;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+        .banner-warning .progress-bar {
+            margin-top: 8px;
+            height: 8px;
+            background: #fde68a;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .banner-warning .progress-fill {
+            height: 100%;
+            background: #d97706;
+            transition: width .3s;
+        }
+        .banner-warning .pill {
+            display: inline-block;
+            padding: 1px 10px;
+            background: #fde68a;
+            color: #78350f;
+            border-radius: 999px;
+            font-weight: 700;
+            margin: 0 3px;
+        }
+
+        @@media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                gap: 30px;
+                height: auto;
+                min-height: 100vh;
+                padding: 30px 20px;
+            }
+
+            .left-image img {
+                width: 280px;
+            }
+
+            .left-image h1 {
+                font-size: 1.5rem;
+            }
+
+            .login-container {
+                width: 100%;
+                max-width: 350px;
+            }
         }
     </style>
 </head>
@@ -146,24 +261,97 @@
     <div class="login-container">
         <h2>Log in</h2>
 
-        @* Display error from ViewBag *@
+        @* -------- LOCKOUT BANNER (red + live countdown) -------- *@
+        @if (isLocked)
+        {
+            <div class="banner banner-lockout" id="lockoutBanner">
+                <i class="fas fa-lock"></i>
+                <strong>Account temporarily locked</strong>
+                <small>
+                    Too many failed login attempts. Please wait before trying again.
+                </small>
+                <span class="countdown" id="lockoutCountdown">…</span>
+            </div>
+        }
+
+        @* -------- WARNING BANNER (amber — remaining attempts) -------- *@
+        @if (showWarn)
+        {
+            <div class="banner banner-warning">
+                <i class="fas fa-triangle-exclamation"></i>
+                <strong>Invalid password.</strong>
+                You have <span class="pill">@remaining</span> attempt@(remaining == 1 ? "" : "s") remaining before your account is locked
+                for <span class="pill">@lockMin min</span>.
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:@failPct%;"></div>
+                </div>
+            </div>
+        }
+
+        @* -------- Generic error from ViewBag -------- *@
         @if (ViewBag.ErrorMessage != null)
         {
             <p class="error-message">@ViewBag.ErrorMessage</p>
         }
 
-        <form asp-action="Login" method="post">
+        <form asp-action="Login" method="post" id="loginForm">
             <div class="input-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Enter your username" required />
+                <input type="text" id="username" name="username" placeholder="Enter your username" required
+                       value="@lastUser"
+                       @(isLocked ? "disabled" : string.Empty) />
             </div>
             <div class="input-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter your password" required />
+                <input type="password" id="password" name="password" placeholder="Enter your password" required
+                       @(isLocked ? "disabled" : string.Empty) />
                 <p class="footer-text"><a href="#">Forgot Password?</a></p>
             </div>
-            <button type="submit" class="btn">Login</button>
+            <button type="submit" class="btn" id="loginBtn"
+                    @(isLocked ? "disabled" : string.Empty)>
+                @(isLocked ? "🔒 Locked — Try again later" : "Login")
+            </button>
         </form>
     </div>
+
+    @* -------- Live countdown when locked out -------- *@
+    @if (isLocked && until.HasValue)
+    {
+        DateTimeOffset untilOffset = new DateTimeOffset(until.Value, TimeSpan.Zero);
+        <script>
+            (function () {
+                var endMs = @untilOffset.ToUnixTimeMilliseconds().ToString();
+                var el = document.getElementById("lockoutCountdown");
+                var btn = document.getElementById("loginBtn");
+                var usr = document.getElementById("username");
+                var pwd = document.getElementById("password");
+                var form = document.getElementById("loginForm");
+
+                function tick() {
+                    var diff = Math.max(0, Math.floor((endMs - Date.now()) / 1000));
+                    if (!el) return;
+                    var m = Math.floor(diff / 60);
+                    var s = diff % 60;
+                    el.textContent = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s + " remaining";
+
+                    if (diff <= 0) {
+                        // ---- Lockout expired: re-enable the form ----
+                        el.textContent = "Unlocked — you may try again";
+                        if (btn) { btn.disabled = false; btn.textContent = "Login"; }
+                        if (usr) { usr.disabled = false; }
+                        if (pwd) { pwd.disabled = false; }
+                        var banner = document.getElementById("lockoutBanner");
+                        if (banner) {
+                            banner.classList.remove("banner-lockout");
+                            banner.classList.add("banner-warning");
+                        }
+                        return;
+                    }
+                    setTimeout(tick, 500);
+                }
+                tick();
+            })();
+        </script>
+    }
 </body>
 </html>
